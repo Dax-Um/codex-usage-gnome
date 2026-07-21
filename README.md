@@ -10,6 +10,30 @@ The usage value refreshes every 60 seconds (while Codex is running) and provides
 quota windows for Codex and any additional models returned by the account API,
 such as GPT-5.3-Codex-Spark.
 
+## Architecture
+
+The extension separates service, platform, and presentation concerns so a new
+usage service can be added without changing the GNOME view.
+
+```mermaid
+flowchart LR
+  P["Usage provider\nCodex / future Claude"] --> D["Usage domain\nsummary and quota buckets"]
+  R["GNOME runtime\nprocess, files, HTTP"] --> P
+  D --> C["Refresh controller"]
+  C --> V["GNOME panel view"]
+```
+
+- `src/providers/` owns provider-specific authentication and API parsing.
+- `src/domain/` contains the provider-neutral quota model and error fallback.
+- `src/platforms/` isolates GJS/GNOME facilities such as files, processes, and HTTP.
+- `src/ui/` renders the GNOME view and formats quota text.
+- `src/controller.js` coordinates provider polling and UI state.
+
+A provider implements `isActive()` and `fetchUsage(callback)`, returning a
+summary with `{ label, remaining, reset }` buckets. A Claude provider can use
+the same contract; Windows and macOS clients can reuse the provider/domain
+contract with their own runtime and tray/menu-bar view.
+
 ## Screenshots
 
 ### Success
