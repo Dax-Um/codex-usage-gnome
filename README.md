@@ -1,3 +1,4 @@
+
 # Codex Usage for GNOME Shell
 
 Display the remaining quota for OpenAI Codex in the GNOME top bar.
@@ -7,10 +8,8 @@ quota windows for Codex and any additional models returned by the account API,
 such as GPT-5.3-Codex-Spark.
 
 ## Screenshot
+<img width="424" height="25" alt="codex-usage" src="https://github.com/user-attachments/assets/89d45eb2-17f7-451c-9b4e-6605997a2251" />
 
-<!-- Add a screenshot here after publishing, for example:
-![Codex Usage indicator](docs/screenshot.png)
--->
 
 ## Requirements
 
