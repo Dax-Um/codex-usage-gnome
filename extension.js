@@ -17,6 +17,10 @@ const USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
 const REFRESH_SECONDS = 60;
 const ACTIVITY_CHECK_SECONDS = 5;
 const REQUEST_TIMEOUT_SECONDS = 20;
+const DEFAULT_FAILURE_BUCKETS = [
+    { label: 'Codex · 5시간', remaining: 0 },
+    { label: 'Codex · 주간', remaining: 0 },
+];
 
 let indicator = null;
 
@@ -357,9 +361,8 @@ class CodexUsageIndicator extends PanelMenu.Button {
         this._bucketsSection = new PopupMenu.PopupMenuSection();
         this.menu.addMenuItem(this._bucketsSection);
 
-        // Do not leave a placeholder in the top bar at login.  The first
-        // activity check shows a zero-percent battery immediately, then the
-        // normal 60-second usage poll replaces it with the account value.
+        // Keep the top bar empty until a request either succeeds or fails.
+        // Codex activity alone is not a usage value.
         this.hide();
         this._checkActivity();
         this._timerId = GLib.timeout_add_seconds(
@@ -405,20 +408,22 @@ class CodexUsageIndicator extends PanelMenu.Button {
             return;
         }
 
-        this.show();
-        this._setPanelBuckets([{ label: 'Codex · 사용량', remaining: 0 }]);
         this._statusItem.label.set_text('Codex usage를 불러오는 중…');
         this._bucketsSection.removeAll();
         this.refresh();
     }
 
     _setError(message) {
-        this._setPanelBuckets([]);
+        const buckets = this._lastSummary?.buckets?.length > 0
+            ? this._lastSummary.buckets.map(bucket => ({ ...bucket, remaining: 0 }))
+            : DEFAULT_FAILURE_BUCKETS;
+        this._setPanelBuckets(buckets, 'Fail');
         this._statusItem.label.set_text(message);
         this._bucketsSection.removeAll();
+        this.show();
     }
 
-    _setPanelBuckets(buckets) {
+    _setPanelBuckets(buckets, valueText = null) {
         this._panelBuckets.destroy_all_children();
         if (buckets.length === 0) {
             this._panelBuckets.add_child(new St.Label({
@@ -443,10 +448,10 @@ class CodexUsageIndicator extends PanelMenu.Button {
             const battery = new HorizontalBattery();
             battery.setPercent(bucket.remaining);
             const percent = new St.Label({
-                text: `${Math.round(bucket.remaining)}%`,
+                text: valueText || `${Math.round(bucket.remaining)}%`,
                 y_align: Clutter.ActorAlign.CENTER,
                 translation_y: 1,
-                style: 'margin: 0;',
+                style: valueText ? 'margin: 0; color: #ff4d4f;' : 'margin: 0;',
             });
             item.add_child(label);
             item.add_child(battery);
@@ -459,6 +464,7 @@ class CodexUsageIndicator extends PanelMenu.Button {
         this._lastSummary = summary;
         this._setPanelBuckets(summary.buckets);
         this._statusItem.label.set_text(summary.detail);
+        this.show();
 
         this._bucketsSection.removeAll();
         const visibleBuckets = summary.buckets.slice(0, 8);

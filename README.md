@@ -2,15 +2,28 @@
 # Codex Usage for GNOME Shell
 
 Display the remaining quota for OpenAI Codex in the GNOME top bar. The
-indicator stays hidden until a `codex` process is running; when Codex starts,
-it immediately shows a 0% placeholder and replaces it with the account value.
+indicator stays hidden until a `codex` process is running and the usage API has
+returned a result. If the API request fails, it shows the normal battery layout
+with empty (0%) batteries and a red `Fail` label instead of a percentage.
 
 The usage value refreshes every 60 seconds (while Codex is running) and provides a menu with separate
 quota windows for Codex and any additional models returned by the account API,
 such as GPT-5.3-Codex-Spark.
 
-## Screenshot
-<img width="424" height="25" alt="codex-usage" src="https://github.com/user-attachments/assets/89d45eb2-17f7-451c-9b4e-6605997a2251" />
+## Screenshots
+
+### Success
+
+The existing screenshot shows a successful usage API response.
+
+<img width="424" height="25" alt="Codex usage with successful API response" src="https://github.com/user-attachments/assets/89d45eb2-17f7-451c-9b4e-6605997a2251" />
+
+### Fail
+
+An API failure uses the same quota layout with empty batteries; each percentage
+is replaced by a red `Fail` label.
+
+<img width="396" height="27" alt="Codex usage with a failed API response" src="screenshots/fail.jpg" />
 
 
 ## Requirements
@@ -74,7 +87,7 @@ If its state is `ERROR`, inspect the current session log:
 journalctl --user -b --no-pager | grep -i codex-usage
 ```
 
-If the indicator displays `Codex !`, verify that `codex login` has completed
+If the indicator displays `Fail`, verify that `codex login` has completed
 successfully and that the computer can reach `chatgpt.com`.
 
 ## Development
