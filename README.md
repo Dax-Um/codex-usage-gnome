@@ -23,7 +23,7 @@ The existing screenshot shows a successful usage API response.
 An API failure uses the same quota layout with empty batteries; each percentage
 is replaced by a red `Fail` label.
 
-<img width="396" height="27" alt="Codex usage with a failed API response" src="screenshots/fail.jpg" />
+<img width="396" height="27" alt="20260721-112958" src="https://github.com/user-attachments/assets/937050ea-ceed-40a3-8d84-494191277472" />
 
 
 ## Requirements
