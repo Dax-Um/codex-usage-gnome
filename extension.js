@@ -15,6 +15,7 @@ const PopupMenu = imports.ui.popupMenu;
 const AUTH_PATH = GLib.build_filenamev([GLib.get_home_dir(), '.codex', 'auth.json']);
 const USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
 const REFRESH_SECONDS = 60;
+const ACTIVITY_CHECK_SECONDS = 5;
 const REQUEST_TIMEOUT_SECONDS = 20;
 
 let indicator = null;
@@ -33,6 +34,19 @@ function readAccessToken() {
     if (!token)
         throw new Error(`No access token in ${AUTH_PATH}; run: codex login`);
     return token;
+}
+
+function isCodexRunning() {
+    // `codex` is the CLI's process name after its Node launcher execs the
+    // native binary.  Keep this separate from usage polling: checking every
+    // few seconds makes the indicator appear promptly without hitting the
+    // account API until Codex is actually in use.
+    try {
+        const [, , , status] = GLib.spawn_command_line_sync('pgrep -x codex');
+        return status === 0;
+    } catch (_error) {
+        return false;
+    }
 }
 
 function isObject(value) {
@@ -329,6 +343,8 @@ class CodexUsageIndicator extends PanelMenu.Button {
         this._session = new Soup.Session();
         this._session.timeout = REQUEST_TIMEOUT_SECONDS;
         this._timerId = 0;
+        this._activityTimerId = 0;
+        this._isActive = false;
         this._lastSummary = null;
 
         this._refreshItem = new PopupMenu.PopupMenuItem('Refresh now');
@@ -341,12 +357,25 @@ class CodexUsageIndicator extends PanelMenu.Button {
         this._bucketsSection = new PopupMenu.PopupMenuSection();
         this.menu.addMenuItem(this._bucketsSection);
 
-        this.refresh();
+        // Do not leave a placeholder in the top bar at login.  The first
+        // activity check shows a zero-percent battery immediately, then the
+        // normal 60-second usage poll replaces it with the account value.
+        this.hide();
+        this._checkActivity();
         this._timerId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             REFRESH_SECONDS,
             () => {
-                this.refresh();
+                if (this._isActive)
+                    this.refresh();
+                return GLib.SOURCE_CONTINUE;
+            }
+        );
+        this._activityTimerId = GLib.timeout_add_seconds(
+            GLib.PRIORITY_DEFAULT,
+            ACTIVITY_CHECK_SECONDS,
+            () => {
+                this._checkActivity();
                 return GLib.SOURCE_CONTINUE;
             }
         );
@@ -357,7 +386,30 @@ class CodexUsageIndicator extends PanelMenu.Button {
             GLib.source_remove(this._timerId);
             this._timerId = 0;
         }
+        if (this._activityTimerId) {
+            GLib.source_remove(this._activityTimerId);
+            this._activityTimerId = 0;
+        }
         super.destroy();
+    }
+
+    _checkActivity() {
+        const active = isCodexRunning();
+        if (active === this._isActive)
+            return;
+
+        this._isActive = active;
+        if (!active) {
+            this.menu.close();
+            this.hide();
+            return;
+        }
+
+        this.show();
+        this._setPanelBuckets([{ label: 'Codex · 사용량', remaining: 0 }]);
+        this._statusItem.label.set_text('Codex usage를 불러오는 중…');
+        this._bucketsSection.removeAll();
+        this.refresh();
     }
 
     _setError(message) {
@@ -418,6 +470,9 @@ class CodexUsageIndicator extends PanelMenu.Button {
     }
 
     refresh() {
+        if (!this._isActive)
+            return;
+
         let token;
         try {
             token = readAccessToken();
@@ -438,9 +493,11 @@ class CodexUsageIndicator extends PanelMenu.Button {
 
                 const text = response.response_body.data;
                 const json = JSON.parse(text);
-                this._setSummary(summarizeUsage(json));
+                if (this._isActive)
+                    this._setSummary(summarizeUsage(json));
             } catch (error) {
-                this._setError(error.message);
+                if (this._isActive)
+                    this._setError(error.message);
             }
         });
     }

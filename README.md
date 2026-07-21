@@ -1,9 +1,11 @@
 
 # Codex Usage for GNOME Shell
 
-Display the remaining quota for OpenAI Codex in the GNOME top bar.
+Display the remaining quota for OpenAI Codex in the GNOME top bar. The
+indicator stays hidden until a `codex` process is running; when Codex starts,
+it immediately shows a 0% placeholder and replaces it with the account value.
 
-The indicator refreshes every 60 seconds and provides a menu with separate
+The usage value refreshes every 60 seconds (while Codex is running) and provides a menu with separate
 quota windows for Codex and any additional models returned by the account API,
 such as GPT-5.3-Codex-Spark.
 
@@ -95,8 +97,3 @@ gnome-extensions enable codex-usage@local
 
 Do not commit `~/.codex/auth.json`, an access token, or screenshots containing
 personal account details. See `.gitignore` for local-file protections.
-
-## License
-
-No license has been selected yet. Before accepting outside contributions or
-releases, add a license file (MIT is a simple permissive choice).
