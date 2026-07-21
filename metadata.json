@@ -1,0 +1,7 @@
+{
+  "uuid": "codex-usage@local",
+  "name": "Codex Usage",
+  "description": "Show remaining OpenAI Codex usage in the GNOME top bar.",
+  "shell-version": ["42"],
+  "version": 1
+}

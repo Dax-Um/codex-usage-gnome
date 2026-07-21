@@ -1,0 +1,10 @@
+# Codex credentials and local configuration
+auth.json
+.codex/
+
+# Build, package, and editor artifacts
+*.zip
+*.swp
+*~
+.vscode/
+.idea/
